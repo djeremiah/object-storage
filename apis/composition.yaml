@@ -1,0 +1,131 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata: 
+  name: s3-service
+spec:
+  writeConnectionSecretsToNamespace: upbound-system
+  compositeTypeRef:
+    apiVersion: example.upbound.io/v1alpha1
+    kind: XBucket
+  resources:
+  - name: bucket
+    base:
+      apiVersion: s3.aws.upbound.io/v1beta1
+      kind: Bucket
+      spec:
+        forProvider:
+          region: eu-west-1
+    connectionDetails:
+    - type: FromFieldPath
+      name: arn
+      fromFieldPath: status.atProvider.arn
+    patches:
+    - type: FromCompositeFieldPath
+      fromFieldPath: spec.parameters.bucketName
+      toFieldPath: metadata.annotations[crossplane.io/external-name]
+      policy: 
+        fromFieldPath: Required
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.atProvider.arn
+      toFieldPath: status.bucketArn
+  - name: bucket-serversideecryption
+    base:
+      apiVersion: s3.aws.upbound.io/v1beta1
+      kind: BucketServerSideEncryptionConfiguration
+      spec:
+        forProvider:
+          region: eu-west-1
+          bucketSelector: 
+            matchControllerRef: true
+          rule:
+          - applyServerSideEncryptionByDefault:
+            - sseAlgorithm: AES256
+            bucketKeyEnabled: true
+  - name: bucket-publicaccessblock
+    base: 
+      apiVersion: s3.aws.upbound.io/v1beta1
+      kind: BucketPublicAccessBlock
+      spec: 
+        forProvider:
+          region: eu-west-1 
+          bucketSelector: 
+            matchControllerRef: true
+          blockPublicAcls: true
+          blockPublicPolicy: true 
+          ignorePublicAcls: true
+          restrictPublicBuckets: true
+    patches: 
+    - type: FromCompositeFieldPath
+      fromFieldPath: metadata.annotations[example.upbound.io/enable-edit]
+      toFieldPath: spec.managementPolicy
+      transforms: 
+      - type: map
+        map: 
+          true: ObserveOnly
+          false: FullControl
+  - name: bucket-versioning
+    base: 
+      apiVersion: s3.aws.upbound.io/v1beta1
+      kind: BucketVersioning
+      spec: 
+        forProvider:
+          region: eu-west-1 
+          bucketSelector: 
+            matchControllerRef: true
+          versioningConfiguration: 
+          - status: Disabled
+    patches: 
+    - type: FromCompositeFieldPath
+      fromFieldPath: metadata.annotations[example.upbound.io/enable-edit]
+      toFieldPath: spec.managementPolicy
+      transforms: 
+      - type: map
+        map: 
+          true: ObserveOnly
+          false: FullControl
+  - name: bucket-policy
+    base: 
+      apiVersion: s3.aws.upbound.io/v1beta1
+      kind: BucketPolicy
+      spec: 
+        forProvider: 
+          region: eu-west-1
+          bucketSelector: 
+            matchControllerRef: true
+          policy: "" # patched
+    patches: 
+    - type: FromCompositeFieldPath
+      fromFieldPath: metadata.annotations[example.upbound.io/enable-edit]
+      toFieldPath: spec.managementPolicy
+      transforms: 
+      - type: map
+        map: 
+          true: ObserveOnly
+          false: FullControl
+    - type: FromCompositeFieldPath
+      fromFieldPath: status.bucketArn
+      toFieldPath: spec.forProvider.policy
+      policy:
+        fromFieldPath: Required
+      transforms:
+      - type: string
+        string: 
+          fmt: |
+            {
+              "Version": "2012-10-17",
+              "Id": "PutObjectPolicy",
+              "Statement": [
+                  {
+                      "Sid": "RequireSSECObjectUploads",
+                      "Effect": "Deny",
+                      "Principal": "*",
+                      "Action": "s3:PutObject",
+                      "Resource": "%s/*",
+                      "Condition": {
+                          "Null": {
+                              "s3:x-amz-server-side-encryption-customer-algorithm": "true"
+                          }
+                      }
+                  }
+              ]
+            }
