@@ -19,6 +19,9 @@ spec:
     - type: FromFieldPath
       name: arn
       fromFieldPath: status.atProvider.arn
+    - type: FromFieldPath
+      name: name
+      fromFieldPath: spec.atProvider.id
     patches:
     - type: FromCompositeFieldPath
       fromFieldPath: spec.parameters.bucketName
