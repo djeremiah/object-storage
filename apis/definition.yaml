@@ -33,9 +33,13 @@ spec:
                     type: string
                 required: 
                 - bucketName
+            required: 
+            - parameters
           status:
             type: object
             properties: 
               bucketArn:
                 description: ARN of S3 Bucket
                 type: string
+        required:
+        - spec  
