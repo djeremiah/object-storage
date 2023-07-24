@@ -86,49 +86,49 @@ spec:
         map: 
           true: ObserveOnly
           false: FullControl
-  - name: bucket-policy
-    base: 
-      apiVersion: s3.aws.upbound.io/v1beta1
-      kind: BucketPolicy
-      spec: 
-        forProvider: 
-          region: eu-west-1
-          bucketSelector: 
-            matchControllerRef: true
-          policy: "" # patched
-    patches: 
-    - type: FromCompositeFieldPath
-      fromFieldPath: metadata.annotations[example.upbound.io/enable-edit]
-      toFieldPath: spec.managementPolicy
-      transforms: 
-      - type: map
-        map: 
-          true: ObserveOnly
-          false: FullControl
-    - type: FromCompositeFieldPath
-      fromFieldPath: status.bucketArn
-      toFieldPath: spec.forProvider.policy
-      policy:
-        fromFieldPath: Required
-      transforms:
-      - type: string
-        string: 
-          fmt: |
-            {
-              "Version": "2012-10-17",
-              "Id": "PutObjectPolicy",
-              "Statement": [
-                  {
-                      "Sid": "RequireSSEC",
-                      "Effect": "Deny",
-                      "Principal": "*",
-                      "Action": "s3:PutObject",
-                      "Resource": "%s/*",
-                      "Condition": {
-                          "Null": {
-                              "s3:x-amz-server-side-encryption-customer-algorithm": "true"
-                          }
-                      }
-                  }
-              ]
-            }
+  # - name: bucket-policy
+  #   base: 
+  #     apiVersion: s3.aws.upbound.io/v1beta1
+  #     kind: BucketPolicy
+  #     spec: 
+  #       forProvider: 
+  #         region: eu-west-1
+  #         bucketSelector: 
+  #           matchControllerRef: true
+  #         policy: "" # patched
+  #   patches: 
+  #   - type: FromCompositeFieldPath
+  #     fromFieldPath: metadata.annotations[example.upbound.io/enable-edit]
+  #     toFieldPath: spec.managementPolicy
+  #     transforms: 
+  #     - type: map
+  #       map: 
+  #         true: ObserveOnly
+  #         false: FullControl
+  #   - type: FromCompositeFieldPath
+  #     fromFieldPath: status.bucketArn
+  #     toFieldPath: spec.forProvider.policy
+  #     policy:
+  #       fromFieldPath: Required
+  #     transforms:
+  #     - type: string
+  #       string: 
+  #         fmt: |
+  #           {
+  #             "Version": "2012-10-17",
+  #             "Id": "PutObjectPolicy",
+  #             "Statement": [
+  #                 {
+  #                     "Sid": "RequireSSEC",
+  #                     "Effect": "Deny",
+  #                     "Principal": "*",
+  #                     "Action": "s3:PutObject",
+  #                     "Resource": "%s/*",
+  #                     "Condition": {
+  #                         "Null": {
+  #                             "s3:x-amz-server-side-encryption-customer-algorithm": "true"
+  #                         }
+  #                     }
+  #                 }
+  #             ]
+  #           }
