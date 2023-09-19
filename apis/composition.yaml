@@ -119,7 +119,7 @@ spec:
               "Id": "PutObjectPolicy",
               "Statement": [
                   {
-                      "Sid": "RequireSSEC",
+                      "Sid": "RequireSSEC-ForReal",
                       "Effect": "Deny",
                       "Principal": "*",
                       "Action": "s3:PutObject",
